@@ -8,6 +8,7 @@ def get_settings():
 class Settings(BaseSettings):
     database_uri: str
     secret_key: str
+    env: str
     jwt_access_token_expires:int=7
     app_host: str="0.0.0.0"
     app_port: int=8000

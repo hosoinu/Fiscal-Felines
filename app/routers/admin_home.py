@@ -2,14 +2,14 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import status
 from app.dependencies.session import SessionDep
-from app.dependencies.auth import AuthDep, IsUserLoggedIn, get_current_user, is_admin
+from app.dependencies.auth import AdminDep, IsUserLoggedIn, get_current_user, is_admin
 from . import router, templates
 
 
 @router.get("/admin", response_class=HTMLResponse)
 async def admin_home_view(
     request: Request,
-    user: AuthDep,
+    user: AdminDep,
     db:SessionDep
 ):
     return templates.TemplateResponse(

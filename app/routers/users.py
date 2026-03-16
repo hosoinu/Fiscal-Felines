@@ -12,4 +12,5 @@ from app.schemas import UserResponse
 @api_router.get("/users", response_model=list[UserResponse])
 async def list_users(request: Request, db: SessionDep):
     user_repo = UserRepository(db)
-    return user_repo.get_all_users()
+    user_service = UserService(user_repo)
+    return user_service.get_all_users()

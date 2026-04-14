@@ -1,0 +1,123 @@
+{% extends "authenticated-base.html" %}
+{% block page_title %}Income{% endblock %}
+
+{% block subpage_content %}
+
+<div class="card-header-row" style="margin-bottom:1.25rem;">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--text);">💰 Income</div>
+    <button class="btn-primary" style="background:linear-gradient(135deg,#065f46,#34d399);" onclick="openModal('add-modal')">+ Add Income</button>
+</div>
+
+<div class="card">
+    <table class="ff-table">
+        <thead>
+            <tr><th>Source</th><th>Amount</th><th>Date</th><th>Recurring</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for i in incomes %}
+            <tr>
+                <td style="font-weight:500;">{{ i.source }}</td>
+                <td style="color:var(--success);font-weight:700;">${{ "%.2f"|format(i.amount) }}</td>
+                <td style="color:var(--text-muted);">{{ i.income_date }}</td>
+                <td>
+                    {% if i.is_recurring %}
+                    <span class="badge badge-green">Recurring</span>
+                    {% else %}
+                    <span class="badge badge-purple">One-time</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button class="btn-ghost" style="font-size:0.75rem;padding:0.3rem 0.65rem;color:var(--danger);border-color:rgba(248,113,113,0.3);"
+                        onclick="deleteIncome({{ i.id }})">Delete</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2.5rem;">No income entries yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Modal -->
+<div id="add-modal" class="ff-modal-overlay" onclick="closeModal('add-modal')">
+    <div class="ff-modal" onclick="event.stopPropagation()">
+        <div class="ff-modal-header">
+            <div class="ff-modal-title">Add Income</div>
+            <button class="ff-modal-close" onclick="closeModal('add-modal')">✕</button>
+        </div>
+        <form id="add-form">
+            <div class="ff-form-group">
+                <label class="ff-label">Source</label>
+                <input class="ff-input" type="text" id="source" placeholder="e.g. Salary, Freelance" required>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
+                <div class="ff-form-group">
+                    <label class="ff-label">Amount ($)</label>
+                    <input class="ff-input" type="number" id="amount" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div class="ff-form-group">
+                    <label class="ff-label">Date</label>
+                    <input class="ff-input" type="date" id="income_date">
+                </div>
+            </div>
+            <div class="ff-form-group" style="display:flex;align-items:center;gap:0.65rem;">
+                <input type="checkbox" id="is_recurring" style="accent-color:var(--accent);width:16px;height:16px;">
+                <label for="is_recurring" style="font-size:0.88rem;color:var(--text);cursor:pointer;">This is a recurring income</label>
+            </div>
+            <button type="submit" class="btn-primary" style="width:100%;justify-content:center;padding:0.75rem;background:linear-gradient(135deg,#065f46,#34d399);">Save Income</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block additional_styles %}
+.ff-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center;
+}
+.ff-modal-overlay.open { display: flex; }
+.ff-modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.75rem; width: 100%; max-width: 460px; animation: slideUp 0.2s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.ff-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.ff-modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; }
+.ff-modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; }
+.ff-form-group { margin-bottom: 0.85rem; }
+.ff-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.ff-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.88rem; font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.18s; outline: none;
+}
+.ff-input:focus { border-color: var(--accent); }
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.getElementById('add-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        source: document.getElementById('source').value,
+        amount: parseFloat(document.getElementById('amount').value),
+        income_date: document.getElementById('income_date').value || null,
+        is_recurring: document.getElementById('is_recurring').checked,
+    };
+    const res = await fetch('/api/income/', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (res.ok) location.reload();
+    else alert('Failed to add income.');
+});
+
+async function deleteIncome(id) {
+    if (!confirm('Delete this income entry?')) return;
+    const res = await fetch(`/api/income/${id}`, { method: 'DELETE' });
+    if (res.ok) location.reload();
+    else alert('Failed to delete.');
+}
+</script>
+{% endblock %}

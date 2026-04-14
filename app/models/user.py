@@ -1,13 +1,5 @@
-from sqlmodel import Field, SQLModel
-from typing import Optional
-from pydantic import EmailStr
+# models are defined in app/models/all_models.py
+# this file kept for import compatibility
+from app.models.all_models import User
 
-
-class UserBase(SQLModel,):
-    username: str = Field(index=True, unique=True)
-    email: EmailStr = Field(index=True, unique=True)
-    password: str
-    role:str = ""
-
-class User(UserBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+__all__ = ["User"]

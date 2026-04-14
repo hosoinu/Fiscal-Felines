@@ -1,0 +1,165 @@
+{% extends "authenticated-base.html" %}
+{% block page_title %}Budget{% endblock %}
+
+{% block subpage_content %}
+
+<div class="card-header-row" style="margin-bottom:1.25rem;">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--text);">🎯 Budget</div>
+    <button class="btn-primary" style="background:linear-gradient(135deg,#4a1d40,#e879f9);" onclick="openModal('add-modal')">+ Set Budget</button>
+</div>
+
+{% if status_list %}
+<!-- Budget Status Cards -->
+<div class="grid-3" style="margin-bottom:1.5rem;">
+    {% for b in status_list %}
+    <div class="card" style="position:relative;overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+            <div style="font-weight:700;font-size:0.95rem;text-transform:capitalize;">{{ b.category.value }}</div>
+            {% if b.over_budget %}
+            <span class="badge badge-red">Over budget!</span>
+            {% else %}
+            <span class="badge badge-green">On track</span>
+            {% endif %}
+        </div>
+        <div style="background:var(--border);border-radius:20px;height:8px;margin-bottom:0.75rem;overflow:hidden;">
+            {% set pct = [(b.spent / b.limit_amount * 100), 100]|min %}
+            <div style="width:{{ pct }}%;height:100%;border-radius:20px;background:{% if b.over_budget %}var(--danger){% else %}var(--accent){% endif %};transition:width 0.6s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted);margin-bottom:0.6rem;">
+            <span>${{ "%.2f"|format(b.spent) }} spent</span>
+            <span>${{ "%.2f"|format(b.limit_amount) }} limit</span>
+        </div>
+        <div style="font-size:0.82rem;{% if b.over_budget %}color:var(--danger){% else %}color:var(--success){% endif %};font-weight:600;">
+            {% if b.over_budget %}
+            ${{ "%.2f"|format(b.spent - b.limit_amount) }} over limit
+            {% else %}
+            ${{ "%.2f"|format(b.remaining) }} remaining
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:3rem;margin-bottom:1.5rem;">
+    <div style="font-size:2.5rem;margin-bottom:0.75rem;">🎯</div>
+    <div style="color:var(--text-muted);margin-bottom:1rem;">No budgets set for this month yet.</div>
+    <button class="btn-primary" style="background:linear-gradient(135deg,#4a1d40,#e879f9);" onclick="openModal('add-modal')">Set your first budget</button>
+</div>
+{% endif %}
+
+<!-- All Budgets Table -->
+{% if budgets %}
+<div class="card">
+    <div class="card-header-row">
+        <div class="card-title">All Budgets</div>
+    </div>
+    <table class="ff-table">
+        <thead>
+            <tr><th>Category</th><th>Limit</th><th>Month</th><th>Year</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for b in budgets %}
+            <tr>
+                <td style="font-weight:500;text-transform:capitalize;">{{ b.category.value }}</td>
+                <td style="color:var(--accent);font-weight:700;">${{ "%.2f"|format(b.limit_amount) }}</td>
+                <td style="color:var(--text-muted);">{{ b.month }}</td>
+                <td style="color:var(--text-muted);">{{ b.year }}</td>
+                <td>
+                    <button class="btn-ghost" style="font-size:0.75rem;padding:0.3rem 0.65rem;color:var(--danger);border-color:rgba(248,113,113,0.3);"
+                        onclick="deleteBudget({{ b.id }})">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Add Modal -->
+<div id="add-modal" class="ff-modal-overlay" onclick="closeModal('add-modal')">
+    <div class="ff-modal" onclick="event.stopPropagation()">
+        <div class="ff-modal-header">
+            <div class="ff-modal-title">Set Budget</div>
+            <button class="ff-modal-close" onclick="closeModal('add-modal')">✕</button>
+        </div>
+        <form id="add-form">
+            <div class="ff-form-group">
+                <label class="ff-label">Category</label>
+                <select class="ff-input" id="category">
+                    {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="ff-form-group">
+                <label class="ff-label">Limit Amount ($)</label>
+                <input class="ff-input" type="number" id="limit_amount" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
+                <div class="ff-form-group">
+                    <label class="ff-label">Month (1–12)</label>
+                    <input class="ff-input" type="number" id="month" min="1" max="12" value="{{ now_month }}" required>
+                </div>
+                <div class="ff-form-group">
+                    <label class="ff-label">Year</label>
+                    <input class="ff-input" type="number" id="year" min="2020" value="{{ now_year }}" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-primary" style="width:100%;justify-content:center;padding:0.75rem;background:linear-gradient(135deg,#4a1d40,#e879f9);">Save Budget</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block additional_styles %}
+.ff-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center;
+}
+.ff-modal-overlay.open { display: flex; }
+.ff-modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.75rem; width: 100%; max-width: 420px; animation: slideUp 0.2s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.ff-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.ff-modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; }
+.ff-modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; }
+.ff-form-group { margin-bottom: 0.85rem; }
+.ff-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.ff-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.88rem; font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.18s; outline: none;
+}
+.ff-input:focus { border-color: var(--accent); }
+.ff-input option { background: var(--surface2); }
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.getElementById('add-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        category: document.getElementById('category').value,
+        limit_amount: parseFloat(document.getElementById('limit_amount').value),
+        month: parseInt(document.getElementById('month').value),
+        year: parseInt(document.getElementById('year').value),
+    };
+    const res = await fetch('/api/budgets/', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (res.ok) location.reload();
+    else alert('Failed to save budget.');
+});
+
+async function deleteBudget(id) {
+    if (!confirm('Delete this budget?')) return;
+    const res = await fetch(`/api/budgets/${id}`, { method: 'DELETE' });
+    if (res.ok) location.reload();
+    else alert('Failed to delete.');
+}
+</script>
+{% endblock %}

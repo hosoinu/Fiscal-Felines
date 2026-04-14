@@ -7,7 +7,7 @@ from app.models.user import User
 from app.dependencies.session import SessionDep
 from app.repositories.user import UserRepository
 
-async def get_current_user(request:Request, db:SessionDep)->User:
+async def get_current_user(request: Request, db: SessionDep) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -19,13 +19,15 @@ async def get_current_user(request:Request, db:SessionDep)->User:
         raise credentials_exception
     try:
         payload = jwt.decode(token, get_settings().secret_key, algorithms=[get_settings().jwt_algorithm])
-        user_id = payload.get("sub",None)
+        username = payload.get("sub", None)  # this is a username, not an ID
+        if username is None:
+            raise credentials_exception
     except InvalidTokenError as e:
         print("Invalid token error: ", e)
         raise credentials_exception
 
     repo = UserRepository(db)
-    user = repo.get_by_id(user_id)
+    user = repo.get_by_username(username)  # fixed: was get_by_id
 
     if user is None:
         raise credentials_exception

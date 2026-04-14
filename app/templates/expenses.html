@@ -1,0 +1,158 @@
+{% extends "authenticated-base.html" %}
+{% block page_title %}Expenses{% endblock %}
+
+{% block subpage_content %}
+
+<div class="card-header-row" style="margin-bottom:1.25rem;">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--text);">💸 Expenses</div>
+    <button class="btn-primary" onclick="openModal('add-modal')">+ Add Expense</button>
+</div>
+
+<!-- Filter Bar -->
+<div class="card" style="margin-bottom:1rem;padding:0.85rem 1.25rem;">
+    <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">Filter:</span>
+        <button class="filter-btn active" onclick="filterCategory('all', this)">All</button>
+        {% for cat in categories %}
+        <button class="filter-btn" onclick="filterCategory('{{cat}}', this)">{{cat}}</button>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <table class="ff-table" id="expenses-table">
+        <thead>
+            <tr>
+                <th>Title</th><th>Category</th><th>Amount</th><th>Date</th><th>Notes</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in expenses %}
+            <tr data-category="{{ e.category.value }}">
+                <td style="font-weight:500;">{{ e.title }}</td>
+                <td><span class="badge badge-purple">{{ e.category.value }}</span></td>
+                <td style="color:var(--danger);font-weight:700;">${{ "%.2f"|format(e.amount) }}</td>
+                <td style="color:var(--text-muted);">{{ e.expense_date }}</td>
+                <td style="color:var(--text-muted);font-size:0.82rem;">{{ e.notes or '—' }}</td>
+                <td>
+                    <button class="btn-ghost" style="font-size:0.75rem;padding:0.3rem 0.65rem;color:var(--danger);border-color:rgba(248,113,113,0.3);"
+                        onclick="deleteExpense({{ e.id }})">Delete</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2.5rem;">No expenses yet. Add your first one!</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Modal -->
+<div id="add-modal" class="ff-modal-overlay" onclick="closeModal('add-modal')">
+    <div class="ff-modal" onclick="event.stopPropagation()">
+        <div class="ff-modal-header">
+            <div class="ff-modal-title">Add Expense</div>
+            <button class="ff-modal-close" onclick="closeModal('add-modal')">✕</button>
+        </div>
+        <form id="add-form">
+            <div class="ff-form-group">
+                <label class="ff-label">Title</label>
+                <input class="ff-input" type="text" id="title" placeholder="e.g. Grocery run" required>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
+                <div class="ff-form-group">
+                    <label class="ff-label">Amount ($)</label>
+                    <input class="ff-input" type="number" id="amount" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div class="ff-form-group">
+                    <label class="ff-label">Date</label>
+                    <input class="ff-input" type="date" id="expense_date">
+                </div>
+            </div>
+            <div class="ff-form-group">
+                <label class="ff-label">Category</label>
+                <select class="ff-input" id="category">
+                    {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="ff-form-group">
+                <label class="ff-label">Notes (optional)</label>
+                <input class="ff-input" type="text" id="notes" placeholder="Any extra details">
+            </div>
+            <button type="submit" class="btn-primary" style="width:100%;justify-content:center;padding:0.75rem;">Save Expense</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block additional_styles %}
+.filter-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+    border-radius: 20px; padding: 0.3rem 0.85rem; font-size: 0.78rem; font-weight: 500;
+    cursor: pointer; transition: all 0.18s; font-family: 'DM Sans', sans-serif;
+}
+.filter-btn:hover, .filter-btn.active {
+    background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
+}
+.ff-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center;
+}
+.ff-modal-overlay.open { display: flex; }
+.ff-modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.75rem; width: 100%; max-width: 460px; animation: slideUp 0.2s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.ff-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.ff-modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; }
+.ff-modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; }
+.ff-form-group { margin-bottom: 0.85rem; }
+.ff-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.ff-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.88rem; font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.18s; outline: none;
+}
+.ff-input:focus { border-color: var(--accent); }
+.ff-input option { background: var(--surface2); }
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function filterCategory(cat, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#expenses-table tbody tr[data-category]').forEach(row => {
+        row.style.display = (cat === 'all' || row.dataset.category === cat) ? '' : 'none';
+    });
+}
+
+document.getElementById('add-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        title: document.getElementById('title').value,
+        amount: parseFloat(document.getElementById('amount').value),
+        category: document.getElementById('category').value,
+        expense_date: document.getElementById('expense_date').value || null,
+        notes: document.getElementById('notes').value || null,
+    };
+    const res = await fetch('/api/expenses/', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (res.ok) location.reload();
+    else alert('Failed to add expense.');
+});
+
+async function deleteExpense(id) {
+    if (!confirm('Delete this expense?')) return;
+    const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+    if (res.ok) location.reload();
+    else alert('Failed to delete.');
+}
+</script>
+{% endblock %}

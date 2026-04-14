@@ -1,30 +1,203 @@
 {% extends "authenticated-base.html" %}
 
-{% block external_js %}
-<script src="{{ url_for('static', path='js/app.js')}}"></script>
-{% endblock %}
-
+{% block page_title %}Dashboard{% endblock %}
 
 {% block subpage_content %}
 
-    <div class="container" id="content">
-        <div class="row">
-            <p>
-                This is table is rendered on the Client. JavaScript code requests the data from <a href="/api/users">/api/users</a> and writes it to this page.
-            </p>
+<!-- Stat Cards -->
+<div class="grid-4" style="margin-bottom: 1.5rem;">
+    <div class="stat-card">
+        <div class="stat-label">Total Income</div>
+        <div class="stat-value" id="stat-income">—</div>
+        <div class="stat-sub">This month</div>
+        <div class="stat-icon">💰</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Expenses</div>
+        <div class="stat-value" id="stat-expenses">—</div>
+        <div class="stat-sub">This month</div>
+        <div class="stat-icon">💸</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Subscriptions</div>
+        <div class="stat-value" id="stat-subs">—</div>
+        <div class="stat-sub">Active</div>
+        <div class="stat-icon">🔄</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Net Balance</div>
+        <div class="stat-value" id="stat-balance">—</div>
+        <div class="stat-sub">Income minus expenses</div>
+        <div class="stat-icon">⚡</div>
+    </div>
+</div>
+
+<!-- Recent Expenses + Quick Actions -->
+<div class="grid-2" style="margin-bottom: 1.5rem;">
+    <div class="card">
+        <div class="card-header-row">
+            <div class="card-title">Recent Expenses</div>
+            <a href="/expenses" class="btn-ghost" style="font-size:0.78rem; padding: 0.35rem 0.75rem;">View all →</a>
         </div>
-        <div class="row">
-            <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>Id</th><th>Username</th>
-                  </tr>
-                </thead>
-                <tbody id="result">
-                
-                <tbody>
-            </table>
-        </div>
+        <table class="ff-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody id="recent-expenses">
+                <tr><td colspan="4" style="color: var(--text-muted); text-align:center; padding: 2rem;">Loading...</td></tr>
+            </tbody>
+        </table>
     </div>
 
+    <div class="card">
+        <div class="card-header-row">
+            <div class="card-title">Quick Add</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+            <a href="/expenses/add" class="btn-primary" style="justify-content:center; padding: 0.75rem;">
+                💸 Add Expense
+            </a>
+            <a href="/income/add" class="btn-primary" style="justify-content:center; padding: 0.75rem; background: linear-gradient(135deg, #065f46, #34d399);">
+                💰 Add Income
+            </a>
+            <a href="/subscriptions/add" class="btn-primary" style="justify-content:center; padding: 0.75rem; background: linear-gradient(135deg, #1e3a5f, #60a5fa);">
+                🔄 Add Subscription
+            </a>
+            <a href="/budget" class="btn-primary" style="justify-content:center; padding: 0.75rem; background: linear-gradient(135deg, #4a1d40, #e879f9);">
+                🎯 Manage Budget
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Overview -->
+<div class="card">
+    <div class="card-header-row">
+        <div class="card-title">Budget Overview</div>
+        <a href="/budget" class="btn-ghost" style="font-size:0.78rem; padding: 0.35rem 0.75rem;">Manage →</a>
+    </div>
+    <div id="budget-overview" style="color: var(--text-muted); text-align:center; padding: 2rem;">
+        Loading budget data...
+    </div>
+</div>
+
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+// Format currency
+const fmt = (n) => '$' + parseFloat(n || 0).toFixed(2);
+
+// Category badge colors
+const catColor = {
+    food: 'badge-green', transport: 'badge-yellow', utilities: 'badge-purple',
+    entertainment: 'badge-red', healthcare: 'badge-green', shopping: 'badge-yellow', other: 'badge-purple'
+};
+
+async function loadDashboard() {
+    try {
+        // Load expenses
+        const expRes = await fetch('/api/expenses');
+        const expenses = expRes.ok ? await expRes.json() : [];
+
+        // Load income
+        const incRes = await fetch('/api/income');
+        const incomes = incRes.ok ? await incRes.json() : [];
+
+        // Load subscriptions
+        const subRes = await fetch('/api/subscriptions');
+        const subs = subRes.ok ? await subRes.json() : [];
+
+        // Load budgets
+        const budRes = await fetch('/api/budgets');
+        const budgets = budRes.ok ? await budRes.json() : [];
+
+        // Stats
+        const now = new Date();
+        const thisMonth = expenses.filter(e => {
+            const d = new Date(e.expense_date);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        });
+        const thisMonthIncome = incomes.filter(i => {
+            const d = new Date(i.income_date);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        });
+
+        const totalExp = thisMonth.reduce((s, e) => s + e.amount, 0);
+        const totalInc = thisMonthIncome.reduce((s, i) => s + i.amount, 0);
+        const activeSubs = subs.filter(s => s.is_active).length;
+        const balance = totalInc - totalExp;
+
+        document.getElementById('stat-expenses').textContent = fmt(totalExp);
+        document.getElementById('stat-income').textContent = fmt(totalInc);
+        document.getElementById('stat-subs').textContent = activeSubs;
+        const balEl = document.getElementById('stat-balance');
+        balEl.textContent = fmt(balance);
+        balEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+
+        // Recent expenses (last 5)
+        const recent = [...expenses].sort((a,b) => new Date(b.expense_date) - new Date(a.expense_date)).slice(0, 5);
+        const tbody = document.getElementById('recent-expenses');
+        if (recent.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:2rem;">No expenses yet</td></tr>';
+        } else {
+            tbody.innerHTML = recent.map(e => `
+                <tr>
+                    <td>${e.title}</td>
+                    <td><span class="badge ${catColor[e.category] || 'badge-purple'}">${e.category}</span></td>
+                    <td style="color:var(--danger);font-weight:600;">${fmt(e.amount)}</td>
+                    <td style="color:var(--text-muted);">${e.expense_date}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Budget overview
+        const budgetDiv = document.getElementById('budget-overview');
+        if (budgets.length === 0) {
+            budgetDiv.innerHTML = '<p style="color:var(--text-muted)">No budgets set. <a href="/budget" style="color:var(--accent)">Add one →</a></p>';
+        } else {
+            // Calculate spent per category this month
+            const spentByCategory = {};
+            thisMonth.forEach(e => {
+                spentByCategory[e.category] = (spentByCategory[e.category] || 0) + e.amount;
+            });
+
+            budgetDiv.innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;">
+                    ${budgets.map(b => {
+                        const spent = spentByCategory[b.category] || 0;
+                        const pct = Math.min((spent / b.limit_amount) * 100, 100);
+                        const over = spent > b.limit_amount;
+                        return `
+                            <div style="background:var(--surface2);border-radius:10px;padding:1rem;border:1px solid var(--border);">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
+                                    <span style="font-weight:600;font-size:0.85rem;">${b.category}</span>
+                                    <span class="badge ${over ? 'badge-red' : 'badge-green'}">${over ? 'Over' : 'OK'}</span>
+                                </div>
+                                <div style="background:var(--border);border-radius:20px;height:6px;margin-bottom:0.5rem;overflow:hidden;">
+                                    <div style="width:${pct}%;height:100%;border-radius:20px;background:${over ? 'var(--danger)' : 'var(--accent)'};transition:width 0.6s ease;"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);">
+                                    <span>${fmt(spent)} spent</span>
+                                    <span>${fmt(b.limit_amount)} limit</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+    } catch(err) {
+        console.error('Dashboard load error:', err);
+    }
+}
+
+loadDashboard();
+</script>
 {% endblock %}

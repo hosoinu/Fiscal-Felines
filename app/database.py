@@ -7,16 +7,15 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-# SQLite doesn't support pool settings
-if settings.database_uri.startswith("sqlite"):
+if settings.db_url.startswith("sqlite"):
     engine = create_engine(
-        settings.database_uri,
+        settings.db_url,
         echo=settings.env.lower() in ["dev", "development", "test", "testing", "staging"],
         connect_args={"check_same_thread": False},
     )
 else:
     engine = create_engine(
-        settings.database_uri,
+        settings.db_url,
         echo=settings.env.lower() in ["dev", "development", "test", "testing", "staging"],
         pool_size=settings.db_pool_size,
         max_overflow=settings.db_additional_overflow,

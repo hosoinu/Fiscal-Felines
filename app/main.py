@@ -24,6 +24,11 @@ async def lifespan(app: FastAPI):
         if not session.exec(select(User).where(User.username == "bob")).first():
             session.add(User(username="bob", password=encrypt_password("bobpass")))
             session.commit()
+
+        if not session.exec(select(User).where(User.username == "aneesa")).first():
+            session.add(User(username="aneesa", password=encrypt_password("12345")))
+            session.commit()
+
     yield
 
 

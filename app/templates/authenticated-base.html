@@ -462,21 +462,21 @@
         <div class="sidebar-nav">
             <div class="nav-section-label">Overview</div>
             <a class="nav-link {{ 'active' if request.url.path == '/app' }}" href="/app">
-                <span class="nav-icon">⚡</span> Dashboard
+                Dashboard
             </a>
 
             <div class="nav-section-label" style="margin-top:0.5rem">Money</div>
             <a class="nav-link {{ 'active' if '/expenses' in request.url.path }}" href="/expenses">
-                <span class="nav-icon">💸</span> Expenses
+                Expenses
             </a>
             <a class="nav-link {{ 'active' if '/income' in request.url.path }}" href="/income">
-                <span class="nav-icon">💰</span> Income
+                Income
             </a>
             <a class="nav-link {{ 'active' if '/subscriptions' in request.url.path }}" href="/subscriptions">
-                <span class="nav-icon">🔄</span> Subscriptions
+                Subscriptions
             </a>
             <a class="nav-link {{ 'active' if '/budget' in request.url.path }}" href="/budget">
-                <span class="nav-icon">🎯</span> Budget
+                Budget
             </a>
         </div>
 
@@ -489,7 +489,7 @@
                 </div>
             </div>
             <a href="/logout" class="logout-link">
-                <span>🚪</span> Sign out
+                Sign out
             </a>
         </div>
     </nav>
